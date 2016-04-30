@@ -1,5 +1,7 @@
 package com.dragon.ntrudemo;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -16,6 +18,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.dragon.ntrudemo.wordCheck.RubbishManager;
+
 public class MainActivity extends AppCompatActivity {
 
 
@@ -24,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout mContainer;
     private EditText mInputText;
     private Button mSubmitButton;
+    private Button mCheckButton;
 
     private final static int MSG_NTRU_ENCRYPT = 0;
     private final static int MSG_NTRU_DECRYPT = 1;
@@ -34,6 +39,10 @@ public class MainActivity extends AppCompatActivity {
 
     private HandlerThread mHandlerThread;
     private Handler mNtruHandler;
+
+    private AlertDialog mAlertDialog;
+
+    private RubbishManager mRubbishManager;
 
     private Handler mMainHandler = new Handler() {
         @Override
@@ -65,22 +74,36 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mInputText = (EditText)findViewById(R.id.input_text);
+        mRubbishManager = new RubbishManager(getApplicationContext());
 
-        mSubmitButton = (Button)findViewById(R.id.submit);
+        mInputText = (EditText) findViewById(R.id.input_text);
+
+        mSubmitButton = (Button) findViewById(R.id.submit);
         mSubmitButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(TextUtils.isEmpty(mInputText.getText())){
+                if (TextUtils.isEmpty(mInputText.getText())) {
                     return;
                 }
-
+                /*
                 Message msg = Message.obtain();
                 msg.what = MSG_NTRU_ENCRYPT;
                 msg.obj = mInputText.getText().toString();
                 mNtruHandler.sendMessage(msg);
 
                 mInputText.setText("");
+                */
+            }
+        });
+
+        mCheckButton = (Button) findViewById(R.id.check);
+        mCheckButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (TextUtils.isEmpty(mInputText.getText())) {
+                    return;
+                }
+                checkContent(mInputText.getText().toString());
             }
         });
 
@@ -99,8 +122,8 @@ public class MainActivity extends AppCompatActivity {
                 switch (msg.what) {
                     case MSG_NTRU_ENCRYPT:
                         //update ui
-                        Log.d("TAG", "msg is " +  msg.obj);
-                        String result = mNtruManager.encrypt((String)msg.obj);
+                        Log.d("TAG", "msg is " + msg.obj);
+                        String result = mNtruManager.encrypt((String) msg.obj);
                         Message message = Message.obtain();
                         message.what = MSG_ENCRYPT;
                         message.obj = result;
@@ -129,10 +152,44 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void checkContent(String content) {
+        boolean result = mRubbishManager.justifyRubbish(mRubbishManager.cutWord(content));
+        if(!result){
+            if(mAlertDialog != null && mAlertDialog.isShowing()){
+                mAlertDialog.dismiss();;
+                mAlertDialog = null;
+            }
+
+            mAlertDialog = new AlertDialog.Builder(this).setTitle(R.string.warning)
+                    .setMessage(R.string.contain_error_word)
+                    .setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            mAlertDialog.dismiss();
+                        }
+                    })
+                    .setPositiveButton(getString(R.string.ok), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            Message msg = Message.obtain();
+                            msg.what = MSG_NTRU_ENCRYPT;
+                            msg.obj = mInputText.getText().toString();
+                            mNtruHandler.sendMessage(msg);
+                        }
+                    })
+                    .show();
+        }else{
+            Message msg = Message.obtain();
+            msg.what = MSG_NTRU_ENCRYPT;
+            msg.obj = mInputText.getText().toString();
+            mNtruHandler.sendMessage(msg);
+        }
+    }
+
     @Override
-    public void onDestroy(){
+    public void onDestroy() {
         super.onDestroy();
-        if(mHandlerThread != null){
+        if (mHandlerThread != null) {
             mHandlerThread.quitSafely();
         }
     }

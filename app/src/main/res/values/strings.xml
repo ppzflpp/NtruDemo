@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">NtruDemo</string>
+    <string name="warning">Warning</string>
+    <string name="contain_error_word">Contain error word,Continue ?</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 </resources>
